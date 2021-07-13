@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry-deploymenti
+spec:
+  replicas: 1
+  selector:
+    matchLabels:  
+      app: registry
+  template:
+    metadata:
+      labels:
+        app: registry
+      annotations:
+        egress-bandwidth: 10Mbit
+    spec:
+      nodeSelector:
+        imagecache: "true" #kubectl label nodes target_node imagecache=true
+      hostNetwork: true
+      tolerations:
+      - key: "noSchedule"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - image: registry:2.7.1
+        name: registry-container
+        ports:
+        - containerPort: 443  
+          #hostPort: 443
+        volumeMounts:
+        - name: registry
+          mountPath: /var/lib/registry
+        - name: config
+          mountPath: /etc/docker/registry/config.yml
+        - name: certs
+          mountPath: /certs
+        env:
+        - name: REGISTRY_HTTP_ADDR
+          value: "0.0.0.0:443"
+        - name: REGISTRY_HTTP_TLS_CERTIFICATE
+          value: "/certs/registry.crt"
+        - name: REGISTRY_HTTP_TLS_KEY
+          value: "/certs/registry.key"  
+      volumes:
+      - name: registry
+        hostPath:
+          path: /var/lib/registry
+      - name: config
+        hostPath:
+          path: /etc/docker/registry/config.yml
+      - name: certs
+        hostPath:
+          path: /etc/docker/registry/certs
+
+
+
+
