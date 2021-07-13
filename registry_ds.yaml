@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: imagecache
+  namespace: default
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: cadvisor
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: imagecache
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - serve
+        - /etc/docker/registry/config.yml
+        command:
+        - /registry/registry
+        image: registry:v1.17.5
+        imagePullPolicy: IfNotPresent
+        name: imagecache
+        resources:
+          limits:
+            cpu: 500m
+            memory: 300Mi
+          requests:
+            cpu: 500m
+            memory: 300Mi
+        volumeMounts:
+        - mountPath: /var/lib/registry
+          name: imagecacheconfig
+        - mountPath: /etc/docker/registry/config.yml
+          name: config
+          subPath: config.yml
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/hostname: atlas-500
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      volumes:
+      - hostPath:
+          path: /root/imagecache
+          type: ""
+        name: imagecache
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: config.yml
+            path: config.yml
+          name: imagecacheconfig
+        name: config
